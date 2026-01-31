@@ -51,7 +51,8 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
 
-    <!-- Fixed RGBD camera in the world (does not move with robot) -->
+
+      <!-- Fixed RGBD camera in the world (does not move with robot) -->
     <model name="fixed_realsense_d435">
       <static>true</static>
 
@@ -133,7 +134,7 @@
       </joint>
     </model>
 
-    <model name='orchard'>
+    <!-- <model name='orchard'>
       <pose>-10 -10 0 0 0 0</pose>
       <static>true</static>
       <link name='orchard'>
@@ -205,7 +206,7 @@
           </geometry>
         </visual>
       </link>
-    </model>
+    </model> -->
 
     <model name='base_station'>
       <pose>-8 -8 0 0 0 0</pose>

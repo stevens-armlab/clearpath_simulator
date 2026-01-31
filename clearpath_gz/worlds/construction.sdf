@@ -51,7 +51,8 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
 
-    <!-- Fixed RGBD camera in the world (does not move with robot) -->
+
+        <!-- Fixed RGBD camera in the world (does not move with robot) -->
     <model name="fixed_realsense_d435">
       <static>true</static>
 
@@ -133,7 +134,7 @@
       </joint>
     </model>
 
-    <model name='office'>
+    <!-- <model name='office'>
       <pose>0 0 0 0 0 0</pose>
       <static>true</static>
       <link name='office'>
@@ -156,9 +157,9 @@
           </geometry>
         </visual>
       </link>
-    </model>
+    </model> -->
 
-    <model name='charge_dock'>
+    <!-- <model name='charge_dock'>
       <pose>17 -2 0 0 0 2.356194490192345</pose>
       <static>true</static>
       <link name='charge_dock'>
@@ -181,6 +182,6 @@
           </geometry>
         </visual>
       </link>
-    </model>
+    </model> -->
   </world>
 </sdf>

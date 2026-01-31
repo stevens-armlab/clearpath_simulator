@@ -3,9 +3,9 @@
   <world name="warehouse">
 
     <physics type="ode">
-      <max_step_size>0.003</max_step_size>
+      <max_step_size>0.01</max_step_size>
       <real_time_factor>1.0</real_time_factor>
-      <real_time_update_rate>1000</real_time_update_rate>
+      <real_time_update_rate>200</real_time_update_rate>
       <gravity>0 0 -9.8</gravity>
     </physics>
 
@@ -137,7 +137,7 @@
       <pose>0 0 -0.1 0 0 0</pose>
     </include>
 
-    <include>
+    <!-- <include>
       <uri>https://fuel.gazebosim.org/1.0/MovAi/models/shelf_big</uri>
       <name>shelf_big_0</name>
       <pose>-8.5 -13 0 0 -0 0</pose>
@@ -263,7 +263,7 @@
       <uri>https://fuel.gazebosim.org/1.0/plateau/models/Casual female</uri>
       <name>Person 2 - Walking</name>
       <pose>-12 15 0 0 0 0</pose>
-    </include>
+    </include> -->
 
   </world>
 </sdf>

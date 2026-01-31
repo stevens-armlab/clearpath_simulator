@@ -49,8 +49,8 @@
       <elevation>600</elevation>
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
-    
-    <!-- Fixed RGBD camera in the world (does not move with robot) -->
+
+        <!-- Fixed RGBD camera in the world (does not move with robot) -->
     <model name="fixed_realsense_d435">
       <static>true</static>
 
@@ -132,7 +132,7 @@
       </joint>
     </model>
 
-    <model name='pipeline'>
+    <!-- <model name='pipeline'>
       <pose>0 20 -1 0 0 3.14159</pose>
       <static>true</static>
       <link name='pipeline'>
@@ -157,7 +157,7 @@
           </geometry>
         </visual>
       </link>
-    </model>
+    </model> -->
 
     <model name='water_level'>
       <pose>0 20 -1 0 0 3.14159</pose>
@@ -177,7 +177,7 @@
       </link>
     </model>
 
-    <model name='base_station'>
+    <!-- <model name='base_station'>
       <pose>0 8 0 0 0 0</pose>
       <static>true</static>
       <link name='base_station'>
@@ -200,6 +200,6 @@
           </geometry>
         </visual>
       </link>
-    </model>
+    </model> -->
   </world>
 </sdf>
