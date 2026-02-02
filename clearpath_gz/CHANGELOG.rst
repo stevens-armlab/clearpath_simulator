@@ -2,6 +2,9 @@
 Changelog for package clearpath_gz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.7.1 (2025-12-16)
+------------------
+
 2.7.0 (2025-08-25)
 ------------------
 * Add explicit gravity & realtime update rate to warehouse world (`#90 <https://github.com/clearpathrobotics/clearpath_simulator/issues/90>`_)
