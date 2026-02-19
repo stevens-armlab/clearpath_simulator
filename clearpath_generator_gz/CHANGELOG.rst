@@ -2,6 +2,15 @@
 Changelog for package clearpath_generator_gz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.9.0 (2026-02-11)
+------------------
+* Update cmake version to 3.20 (`#100 <https://github.com/clearpathrobotics/clearpath_simulator/issues/100>`_)
+* Add SeyondLidar support in sensors.py (param generator) (`#98 <https://github.com/clearpathrobotics/clearpath_simulator/issues/98>`_)
+  * Add SeyondLidar support in sensors.py (param generator)
+  * Reorganize imports for 3D lidars in sensors.py
+  Fix imports out-of-alphabetical-order and line too long
+* Contributors: Andrei Costinescu, luis-camero
+
 2.7.1 (2025-12-16)
 ------------------
 * Added OusterOS1 to param generator (`#96 <https://github.com/clearpathrobotics/clearpath_simulator/issues/96>`_)
