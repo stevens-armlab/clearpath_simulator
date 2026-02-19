@@ -134,7 +134,7 @@
       </joint>
     </model>
 
-    <!-- <model name='orchard'>
+ <model name='orchard'>
       <pose>-10 -10 0 0 0 0</pose>
       <static>true</static>
       <link name='orchard'>
@@ -158,7 +158,7 @@
         </visual>
       </link>
     </model>
-
+    <!--
     <model name='orchard_trees'>
       <pose>-10 -10 0 0 0 0</pose>
       <static>true</static>
@@ -208,7 +208,7 @@
       </link>
     </model> -->
 
-    <model name='base_station'>
+    <!-- <model name='base_station'>
       <pose>-8 -8 0 0 0 0</pose>
       <static>true</static>
       <link name='base_station'>
@@ -231,6 +231,6 @@
           </geometry>
         </visual>
       </link>
-    </model>
+    </model> -->
   </world>
 </sdf>

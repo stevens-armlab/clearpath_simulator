@@ -132,7 +132,7 @@
       </joint>
     </model>
 
-    <!-- <model name='pipeline'>
+    <model name='pipeline'>
       <pose>0 20 -1 0 0 3.14159</pose>
       <static>true</static>
       <link name='pipeline'>
@@ -157,7 +157,7 @@
           </geometry>
         </visual>
       </link>
-    </model> -->
+    </model>
 
     <model name='water_level'>
       <pose>0 20 -1 0 0 3.14159</pose>
