@@ -18,8 +18,6 @@ import os
 import shutil
 import tempfile
 
-import yaml
-
 from clearpath_config.clearpath_config import ClearpathConfig
 
 from launch import LaunchDescription
@@ -29,6 +27,7 @@ from launch.actions import (
     IncludeLaunchDescription,
     OpaqueFunction,
     RegisterEventHandler,
+    SetEnvironmentVariable,
 )
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
@@ -41,6 +40,7 @@ from launch.substitutions import (
 
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+import yaml
 
 
 ARGUMENTS = [
@@ -127,6 +127,51 @@ def _sanitize_single_arm_setup_action(context, setup_path: str, *args, **kwargs)
     return []
 
 
+def _sanitize_single_arm_robot_yaml(robot_config: dict) -> bool:
+    """Trim secondary-arm extras from robot.yaml for single-arm mode."""
+    updated = False
+
+    platform = robot_config.get('platform')
+    if not isinstance(platform, dict):
+        return updated
+
+    extras = platform.get('extras')
+    if not isinstance(extras, dict):
+        return updated
+
+    urdf = extras.get('urdf')
+    if isinstance(urdf, dict):
+        package = urdf.get('package')
+        path = urdf.get('path')
+        # Switch to a single-arm extras file when one exists for the NASA hand setup.
+        if package == 'my_kortex' and path == 'urdf/nasa_hand_platform_extras.urdf.xacro':
+            urdf['path'] = 'urdf/nasa_hand_platform_extras_single.urdf.xacro'
+            updated = True
+
+    ros_parameters = extras.get('ros_parameters')
+    if not isinstance(ros_parameters, dict):
+        return updated
+
+    controller_manager = ros_parameters.get('controller_manager')
+    if not isinstance(controller_manager, dict):
+        return updated
+
+    for key in list(controller_manager.keys()):
+        controller_name = key[:-5] if key.endswith('.type') else key
+        if _is_secondary_arm(controller_name):
+            controller_manager.pop(key, None)
+            updated = True
+
+    return updated
+
+
+def _path_with_system_python_first() -> str:
+    """Ensure /usr/bin is first so env-python shebangs use system python3."""
+    current_path = os.environ.get('PATH', '')
+    path_entries = [entry for entry in current_path.split(os.pathsep) if entry]
+    return os.pathsep.join(['/usr/bin'] + [entry for entry in path_entries if entry != '/usr/bin'])
+
+
 def _resolve_setup_path(setup_path: str, arm_mode: str) -> str:
     """Build a temporary setup when launching in single-arm mode."""
     if arm_mode != 'single':
@@ -143,6 +188,7 @@ def _resolve_setup_path(setup_path: str, arm_mode: str) -> str:
     with open(single_arm_robot_yaml_path, 'r', encoding='utf-8') as handle:
         robot_config = yaml.safe_load(handle) or {}
 
+    robot_yaml_updated = False
     manipulators = robot_config.get('manipulators') or {}
     arms = manipulators.get('arms') or []
     if arms:
@@ -153,6 +199,12 @@ def _resolve_setup_path(setup_path: str, arm_mode: str) -> str:
         single_arm['xyz'] = [xyz[0], 0.0, xyz[2]]
         manipulators['arms'] = [single_arm]
         robot_config['manipulators'] = manipulators
+        robot_yaml_updated = True
+
+    if _sanitize_single_arm_robot_yaml(robot_config):
+        robot_yaml_updated = True
+
+    if robot_yaml_updated:
         with open(single_arm_robot_yaml_path, 'w', encoding='utf-8') as handle:
             yaml.safe_dump(robot_config, handle, sort_keys=False)
 
@@ -162,6 +214,11 @@ def _resolve_setup_path(setup_path: str, arm_mode: str) -> str:
 
 
 def launch_setup(context, *args, **kwargs):
+    force_system_python = SetEnvironmentVariable(
+        name='PATH',
+        value=_path_with_system_python_first(),
+    )
+
     setup_path = LaunchConfiguration('setup_path')
     setup_path_value = str(setup_path.perform(context))
     arm_mode = LaunchConfiguration('arm_mode').perform(context)
@@ -310,6 +367,7 @@ def launch_setup(context, *args, **kwargs):
     )
 
     actions = [
+        force_system_python,
         node_generate_description,
         event_generate_description,
         event_generate_semantic_description,
