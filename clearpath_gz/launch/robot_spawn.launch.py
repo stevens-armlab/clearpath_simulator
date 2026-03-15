@@ -15,6 +15,10 @@
 # @author Roni Kreinin (rkreinin@clearpathrobotics.com)
 
 import os
+import shutil
+import tempfile
+
+import yaml
 
 from clearpath_config.clearpath_config import ClearpathConfig
 
@@ -51,6 +55,10 @@ ARGUMENTS = [
     DeclareLaunchArgument('setup_path',
                           default_value=[EnvironmentVariable('HOME'), '/clearpath/'],
                           description='Clearpath setup path'),
+    DeclareLaunchArgument('arm_mode',
+                          default_value='dual',
+                          choices=['single', 'dual'],
+                          description='Launch single arm or dual arm configuration'),
     DeclareLaunchArgument('generate',
                           default_value='true',
                           choices=['true', 'false'],
@@ -65,17 +73,56 @@ ARGUMENTS.append(DeclareLaunchArgument('z', default_value='0.15',
                  description='z component of the robot pose.'))
 
 
+def _resolve_setup_path(setup_path: str, arm_mode: str) -> str:
+    """Build a temporary setup when launching in single-arm mode."""
+    if arm_mode != 'single':
+        return setup_path
+
+    robot_yaml_path = os.path.join(setup_path, 'robot.yaml')
+    if not os.path.exists(robot_yaml_path):
+        raise FileNotFoundError(f'robot.yaml not found at {robot_yaml_path}')
+
+    single_arm_setup_path = tempfile.mkdtemp(prefix='clearpath_single_arm_setup_')
+    shutil.copytree(setup_path, single_arm_setup_path, dirs_exist_ok=True)
+
+    single_arm_robot_yaml_path = os.path.join(single_arm_setup_path, 'robot.yaml')
+    with open(single_arm_robot_yaml_path, 'r', encoding='utf-8') as handle:
+        robot_config = yaml.safe_load(handle) or {}
+
+    manipulators = robot_config.get('manipulators') or {}
+    arms = manipulators.get('arms') or []
+    if arms:
+        # Keep only one arm in single mode and center it laterally.
+        # Preserve x/z from robot.yaml and only force y to 0.0.
+        single_arm = arms[0]
+        xyz = single_arm.get('xyz', [0.25, 0.0, 0.005])
+        single_arm['xyz'] = [xyz[0], 0.0, xyz[2]]
+        manipulators['arms'] = [single_arm]
+        robot_config['manipulators'] = manipulators
+        with open(single_arm_robot_yaml_path, 'w', encoding='utf-8') as handle:
+            yaml.safe_dump(robot_config, handle, sort_keys=False)
+
+    return single_arm_setup_path
+
+
 def launch_setup(context, *args, **kwargs):
     setup_path = LaunchConfiguration('setup_path')
+    setup_path_value = str(setup_path.perform(context))
+    arm_mode = LaunchConfiguration('arm_mode').perform(context)
+    resolved_setup_path = _resolve_setup_path(setup_path_value, arm_mode)
     world = LaunchConfiguration('world')
     use_sim_time = LaunchConfiguration('use_sim_time')
     x, y, z = LaunchConfiguration('x'), LaunchConfiguration('y'), LaunchConfiguration('z')
     yaw = LaunchConfiguration('yaw')
     generate = LaunchConfiguration('generate')
+    generate_enabled = generate.perform(context).lower() == 'true'
+
+    if arm_mode == 'single' and not generate_enabled:
+        raise RuntimeError('arm_mode:=single requires generate:=true')
 
     # Parse robot YAML into config
     clearpath_config = ClearpathConfig(os.path.join(
-        str(setup_path.perform(context)), 'robot.yaml'))
+        resolved_setup_path, 'robot.yaml'))
 
     namespace = clearpath_config.system.namespace
     if namespace in ('', '/'):
@@ -89,10 +136,10 @@ def launch_setup(context, *args, **kwargs):
     # Paths
     rviz_launch = PathJoinSubstitution(
         [pkg_clearpath_viz, 'launch', 'view_robot.launch.py'])
-    launch_file_platform_service = PathJoinSubstitution([
-        setup_path, 'platform/launch', 'platform-service.launch.py'])
-    launch_file_sensors_service = PathJoinSubstitution([
-        setup_path, 'sensors/launch', 'sensors-service.launch.py'])
+    launch_file_platform_service = os.path.join(
+        resolved_setup_path, 'platform/launch/platform-service.launch.py')
+    launch_file_sensors_service = os.path.join(
+        resolved_setup_path, 'sensors/launch/sensors-service.launch.py')
 
     group_action_spawn_robot = GroupAction([
 
@@ -129,7 +176,7 @@ def launch_setup(context, *args, **kwargs):
         name='generate_description',
         output='screen',
         condition=IfCondition(generate),
-        arguments=['-s', setup_path]
+        arguments=['-s', resolved_setup_path]
     )
 
     node_generate_semantic_description = Node(
@@ -138,7 +185,7 @@ def launch_setup(context, *args, **kwargs):
         name='generate_semantic_description',
         output='screen',
         condition=IfCondition(generate),
-        arguments=['-s', setup_path]
+        arguments=['-s', resolved_setup_path]
     )
 
     node_generate_launch = Node(
@@ -147,7 +194,7 @@ def launch_setup(context, *args, **kwargs):
         name='generate_launch',
         output='screen',
         condition=IfCondition(generate),
-        arguments=['-s', setup_path]
+        arguments=['-s', resolved_setup_path]
     )
 
     node_generate_param = Node(
@@ -156,7 +203,7 @@ def launch_setup(context, *args, **kwargs):
         name='generate_param',
         output='screen',
         condition=IfCondition(generate),
-        arguments=['-s', setup_path]
+        arguments=['-s', resolved_setup_path]
     )
 
     event_generate_description = RegisterEventHandler(
@@ -205,7 +252,7 @@ def launch_setup(context, *args, **kwargs):
         rviz
     ]
 
-    if not bool(generate.perform(context)):
+    if not generate_enabled:
         actions.append(group_action_spawn_robot)
 
     return actions

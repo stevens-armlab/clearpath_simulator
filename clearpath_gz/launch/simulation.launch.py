@@ -39,6 +39,9 @@ ARGUMENTS = [
     DeclareLaunchArgument('setup_path',
                           default_value=[EnvironmentVariable('HOME'), '/clearpath/'],
                           description='Clearpath setup path'),
+    DeclareLaunchArgument('arm_mode', default_value='dual',
+                          choices=['single', 'dual'],
+                          description='Launch single arm or dual arm configuration'),
     DeclareLaunchArgument('use_sim_time', default_value='true',
                           choices=['true', 'false'],
                           description='use_sim_time'),
@@ -75,6 +78,7 @@ def generate_launch_description():
         launch_arguments=[
             ('use_sim_time', LaunchConfiguration('use_sim_time')),
             ('setup_path', LaunchConfiguration('setup_path')),
+            ('arm_mode', LaunchConfiguration('arm_mode')),
             ('world', LaunchConfiguration('world')),
             ('rviz', LaunchConfiguration('rviz')),
             ('x', LaunchConfiguration('x')),
