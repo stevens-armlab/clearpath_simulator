@@ -73,6 +73,60 @@ ARGUMENTS.append(DeclareLaunchArgument('z', default_value='0.15',
                  description='z component of the robot pose.'))
 
 
+def _is_secondary_arm(name: str) -> bool:
+    """Return True for arm controllers beyond arm_0."""
+    return name.startswith('arm_') and not name.startswith('arm_0_')
+
+
+def _sanitize_single_arm_control_yaml(setup_path: str) -> None:
+    """Remove secondary arm controllers from control.yaml in single-arm mode."""
+    control_yaml_path = os.path.join(setup_path, 'platform', 'config', 'control.yaml')
+    if not os.path.exists(control_yaml_path):
+        return
+
+    with open(control_yaml_path, 'r', encoding='utf-8') as handle:
+        control_config = yaml.safe_load(handle) or {}
+
+    updated = False
+    for _, namespace_config in control_config.items():
+        if not isinstance(namespace_config, dict):
+            continue
+
+        # Remove full controller parameter blocks (e.g. arm_1_joint_trajectory_controller).
+        for key in list(namespace_config.keys()):
+            if _is_secondary_arm(key):
+                namespace_config.pop(key, None)
+                updated = True
+
+        # Remove controller_manager type declarations for secondary arm controllers.
+        controller_manager = namespace_config.get('controller_manager')
+        if not isinstance(controller_manager, dict):
+            continue
+        ros_params = controller_manager.get('ros__parameters')
+        if not isinstance(ros_params, dict):
+            continue
+
+        for key in list(ros_params.keys()):
+            controller_name = key[:-5] if key.endswith('.type') else key
+            if _is_secondary_arm(controller_name):
+                ros_params.pop(key, None)
+                updated = True
+
+    if updated:
+        with open(control_yaml_path, 'w', encoding='utf-8') as handle:
+            yaml.safe_dump(control_config, handle, sort_keys=False)
+
+
+def _sanitize_single_arm_setup(setup_path: str) -> None:
+    """Apply single-arm cleanup to generated/copied setup artifacts."""
+    _sanitize_single_arm_control_yaml(setup_path)
+
+
+def _sanitize_single_arm_setup_action(context, setup_path: str, *args, **kwargs):
+    _sanitize_single_arm_setup(setup_path)
+    return []
+
+
 def _resolve_setup_path(setup_path: str, arm_mode: str) -> str:
     """Build a temporary setup when launching in single-arm mode."""
     if arm_mode != 'single':
@@ -101,6 +155,8 @@ def _resolve_setup_path(setup_path: str, arm_mode: str) -> str:
         robot_config['manipulators'] = manipulators
         with open(single_arm_robot_yaml_path, 'w', encoding='utf-8') as handle:
             yaml.safe_dump(robot_config, handle, sort_keys=False)
+
+    _sanitize_single_arm_setup(single_arm_setup_path)
 
     return single_arm_setup_path
 
@@ -227,10 +283,20 @@ def launch_setup(context, *args, **kwargs):
         )
     )
 
+    spawn_on_exit = [group_action_spawn_robot]
+    if arm_mode == 'single':
+        spawn_on_exit = [
+            OpaqueFunction(
+                function=_sanitize_single_arm_setup_action,
+                args=[resolved_setup_path],
+            ),
+            group_action_spawn_robot,
+        ]
+
     event_generate_param = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=node_generate_param,
-            on_exit=[group_action_spawn_robot]
+            on_exit=spawn_on_exit
         )
     )
 
