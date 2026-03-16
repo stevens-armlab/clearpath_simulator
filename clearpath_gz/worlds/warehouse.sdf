@@ -17,6 +17,7 @@
     </plugin>
     <plugin name="gz::sim::systems::Imu" filename="libgz-sim-imu-system.so"/>
     <plugin name="gz::sim::systems::NavSat" filename="libgz-sim-navsat-system.so"/>
+    <plugin name="gz::sim::systems::ForceTorque" filename="libgz-sim-forcetorque-system.so"/>
 
     <scene>
       <ambient>1 1 1 1</ambient>
