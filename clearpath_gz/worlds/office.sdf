@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='ASCII'?>
 <sdf version='1.4'>
   <world name='office'>
-    <physics type='bullet'>
+    <physics type='ode'>
       <max_step_size>0.003</max_step_size>
       <real_time_factor>1.0</real_time_factor>
       <real_time_update_rate>1000</real_time_update_rate>
@@ -10,23 +10,27 @@
     <plugin name='gz::sim::systems::Physics' filename='libgz-sim-physics-system.so'/>
     <plugin name='gz::sim::systems::UserCommands' filename='libgz-sim-user-commands-system.so'/>
     <plugin name='gz::sim::systems::SceneBroadcaster' filename='libgz-sim-scene-broadcaster-system.so'/>
-    <plugin name='gz::sim::systems::Sensors' filename='libgz-sim-sensors-system.so'>
+    <plugin name="gz::sim::systems::Sensors" filename="libgz-sim-sensors-system.so">
       <render_engine>ogre2</render_engine>
     </plugin>
-    <plugin name='gz::sim::systems::Imu' filename='libgz-sim-imu-system.so'/>
-    <plugin name='gz::sim::systems::NavSat' filename='libgz-sim-navsat-system.so'/>
-    <plugin name='gz::sim::systems::ForceTorque' filename='libgz-sim-forcetorque-system.so'/>
+    <plugin name="gz::sim::systems::Imu" filename="libgz-sim-imu-system.so"/>
+    <plugin name="gz::sim::systems::NavSat" filename="libgz-sim-navsat-system.so"/>
 
     <scene>
       <ambient>1 1 1 1</ambient>
       <background>0.3 0.7 0.9 1</background>
-      <shadows>1</shadows>
+      <shadows>0</shadows>
       <grid>false</grid>
+      <sky>
+        <clouds>
+          <speed>12</speed>
+        </clouds>
+      </sky>
+      <shadows>1</shadows>
     </scene>
-
     <light name='sun' type='directional'>
       <cast_shadows>1</cast_shadows>
-      <pose>0 0 10 0 0 0</pose>
+      <pose>0 0 10 0 -0 0</pose>
       <diffuse>1.0 1.0 1.0 1</diffuse>
       <specular>0.2 0.2 0.2 1</specular>
       <attenuation>
@@ -38,6 +42,7 @@
       <direction>-0.5 0.5 -1.0</direction>
     </light>
 
+    <!-- Origin placed somewhere near Clearpath's office in Waterloo, ON, Canada -->
     <spherical_coordinates>
       <surface_model>EARTH_WGS84</surface_model>
       <latitude_deg>43.500720</latitude_deg>
@@ -46,45 +51,9 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
 
-    <model name='fixed_world_camera'>
-      <static>true</static>
-      <pose>-0.22 -0.38 2.55 0 -0.24 -0.04</pose>
-      <link name='camera_link'>
-        <visual name='camera_body'>
-          <geometry>
-            <box>
-              <size>0.08 0.03 0.03</size>
-            </box>
-          </geometry>
-          <material>
-            <ambient>0.95 0.95 0.95 1</ambient>
-            <diffuse>0.95 0.95 0.95 1</diffuse>
-            <specular>0.1 0.1 0.1 1</specular>
-          </material>
-        </visual>
-        <sensor name='world_camera' type='camera'>
-          <always_on>true</always_on>
-          <update_rate>20</update_rate>
-          <topic>/office/world_camera/image_raw</topic>
-          <camera name='camera'>
-            <horizontal_fov>1.047</horizontal_fov>
-            <image>
-              <width>640</width>
-              <height>480</height>
-              <format>R8G8B8</format>
-            </image>
-            <clip>
-              <near>0.1</near>
-              <far>40</far>
-            </clip>
-          </camera>
-        </sensor>
-      </link>
-    </model>
-
     <model name='ground_plane'>
-      <static>true</static>
       <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
       <link name='ground_link'>
         <collision name='ground_collision'>
           <geometry>
@@ -93,6 +62,14 @@
               <size>1000 1000</size>
             </plane>
           </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>2.0</mu>
+                <mu2>2.0</mu2>
+              </ode>
+            </friction>
+          </surface>
         </collision>
         <visual name='ground_visual'>
           <geometry>
@@ -101,13 +78,90 @@
               <size>1000 1000</size>
             </plane>
           </geometry>
+        </visual>
+      </link>
+    </model>
+
+
+    <model name="fixed_realsense_d435">
+      <static>true</static>
+
+      <!-- world pose: x y z roll pitch yaw -->
+      <!-- pitch = -pi/2 makes it look down -->
+      <!-- yaw rotates the top-down view to match your robot axes -->
+      <pose>-0.35 0.45 3.50 -0.05 -0.04 -0.65</pose>
+
+
+      <link name="camera_link">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia>
+            <ixx>1e-4</ixx>
+            <iyy>1e-4</iyy>
+            <izz>1e-4</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+
+        <visual name="body_visual">
+          <geometry>
+            <box>
+              <size>0.09 0.025 0.025</size>
+            </box>
+          </geometry>
           <material>
-            <ambient>0.35 0.35 0.35 1</ambient>
-            <diffuse>0.45 0.45 0.45 1</diffuse>
-            <specular>0.05 0.05 0.05 1</specular>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <specular>0 0 0 1</specular>
           </material>
         </visual>
       </link>
+
+      <!-- optical link so axes match ROS optical convention -->
+      <link name="camera_optical_link">
+        <!-- rotation: roll=-pi/2 yaw=-pi/2 -->
+        <pose relative_to="camera_link">0 0 0 0 1.57075 0</pose>
+
+        <sensor name="realsense_rgbd" type="rgbd_camera">
+          <always_on>true</always_on>
+          <update_rate>30</update_rate>
+          <visualize>true</visualize>
+
+          <topic>/a200_0000/camera_0</topic>
+
+          <camera name="color">
+            <horizontal_fov>1.20</horizontal_fov>
+            <image>
+              <width>640</width>
+              <height>480</height>
+              <format>R8G8B8</format>
+            </image>
+            <clip>
+              <near>0.1</near>
+              <far>25</far>
+            </clip>
+          </camera>
+
+          <depth_camera name="depth">
+            <image>
+              <width>640</width>
+              <height>480</height>
+              <format>R_FLOAT32</format>
+            </image>
+            <clip>
+              <near>0.1</near>
+              <far>10</far>
+            </clip>
+          </depth_camera>
+        </sensor>
+      </link>
+
+      <joint name="camera_optical_fixed" type="fixed">
+        <parent>camera_link</parent>
+        <child>camera_optical_link</child>
+      </joint>
     </model>
   </world>
 </sdf>
